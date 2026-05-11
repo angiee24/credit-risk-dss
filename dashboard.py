@@ -62,15 +62,15 @@ def map_risk_status(status):
     return mapping.get(status, 'Lainnya')
 
 risk_color_map = {
-    'Lancar (Current)': '#2ecc71',      
-    'Tanpa Riwayat': '#9ca3af',      
-    'Dini (0-29 Hari)': '#34d399',      
-    'Ringan (30-59 Hari)': '#a7f3d0',   
-    'Sedang (60-89 Hari)': '#f1c40f',    
-    'Berat (90-119 Hari)': '#f39c12',   
-    'Macet (120-149 Hari)': '#e74c3c',  
+    'Lancar (Current)': '#2ecc71',
+    'Tanpa Riwayat': '#9ca3af',
+    'Dini (0-29 Hari)': '#34d399',
+    'Ringan (30-59 Hari)': '#a7f3d0',
+    'Sedang (60-89 Hari)': '#f1c40f',
+    'Berat (90-119 Hari)': '#f39c12',
+    'Macet (120-149 Hari)': '#e74c3c',
     'Gagal Bayar (>150 Hari)': '#c0392b',
-    'Lainnya': '#cbd5e1'              
+    'Lainnya': '#cbd5e1'
 }
 
 def define_risk_segment(status):
@@ -82,11 +82,8 @@ def define_risk_segment(status):
 @st.cache_data
 def load_data(path):
     if not os.path.exists(path): return None
-    
     df = pd.read_csv(path)
-    
     df = df.dropna(subset=['STATUS'])
-    
     df['Risk_Label'] = df['STATUS'].apply(map_risk_status)
     df['Risk_Segment'] = df['STATUS'].apply(define_risk_segment)
     return df
@@ -94,7 +91,7 @@ def load_data(path):
 df = load_data("hasil_dss_credit_decision.csv")
 
 if df is None:
-    st.error("Sistem gagal memuat dataset: 'hasil_dss_credit_decision.csv' tidak ditemukan.")
+    st.error("Gagal memuat dataset: 'hasil_dss_credit_decision.csv' tidak ditemukan.")
     st.stop()
 
 st.sidebar.markdown("### Navigasi Portofolio")
@@ -144,39 +141,35 @@ with row1_left:
 with row1_right:
     risk_comp = df_filtered['Risk_Label'].value_counts().reset_index()
     risk_comp.columns = ['Status Kolektibilitas', 'Total']
-    
     fig_pie = px.pie(
         risk_comp, names='Status Kolektibilitas', values='Total', 
         title="Komposisi Kolektibilitas Portofolio",
         hole=0.5, 
-        color='Status Kolektibilitas', 
-        color_discrete_map=risk_color_map 
+        color='Status Kolektibilitas',
+        color_discrete_map=risk_color_map
     )
-    fig_pie.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)") # Latar belakang tetap transparan
+    fig_pie.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig_pie, use_container_width=True)
 
 st.markdown("### Simulasi Kebijakan & Strategi")
 col_sim, col_ins = st.columns([1, 1])
 
 with col_sim:
-    st.markdown("<p style='font-size:14px; color:#4a5568;'>Geser untuk mensimulasikan dampak perubahan ambang batas skor (Credit Score Cut-off) terhadap tingkat persetujuan.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:14px; color:#4a5568;'>Simulasi dampak perubahan ambang batas skor (Credit Score Cut-off) terhadap tingkat persetujuan.</p>", unsafe_allow_html=True)
     cut_off = st.slider("Ambang Batas Skor (Cut-off):", 0, 100, 50)
-    
     potential_approve = len(df_filtered[df_filtered['risk_score'] >= cut_off])
     new_rate = (potential_approve / total_n) * 100 if total_n > 0 else 0
-    
     st.info(f"**Proyeksi:** Dengan Cut-off skor **{cut_off}**, estimasi Laju Persetujuan akan bergerak menjadi **{new_rate:.1f}%**.")
 
 with col_ins:
     st.markdown("#### Rekomendasi Strategis")
     median_reject = df[df['credit_decision']=='REJECT']['risk_score'].median()
     median_reject_val = median_reject if pd.notna(median_reject) else 0
-    
     st.markdown(f"""
     <div class='insight-section'>
         <b>Analisis Kualitas:</b> Mayoritas penolakan (REJECT) tersentralisasi pada skor di bawah {median_reject_val:.0f}. 
-        Hal ini menunjukkan model klasifikasi bekerja konsisten dengan parameter risiko.<br><br>
-        <b>Langkah Mitigasi:</b> Untuk segmen <i>{selected_income[0] if len(selected_income) > 0 else 'Umum'}</i>, disarankan untuk melakukan peninjauan manual jika skor berada di area marginal (skor 45-55) guna menjaga profitabilitas tanpa mengabaikan perlindungan risiko.
+        Model bekerja konsisten dengan parameter risiko.<br><br>
+        <b>Langkah Mitigasi:</b> Untuk segmen <i>{selected_income[0] if len(selected_income) > 0 else 'Umum'}</i>, disarankan peninjauan manual jika skor berada di area marginal (45-55).
     </div>
     """, unsafe_allow_html=True)
 
@@ -202,7 +195,7 @@ def color_decision(val):
     return ''
 
 st.dataframe(
-    crm_table.head(100).style.applymap(color_decision, subset=['Keputusan']).format({"Pendapatan": "Rp {:,.0f}"}),
+    crm_table.head(100).style.map(color_decision, subset=['Keputusan']).format({"Pendapatan": "Rp {:,.0f}"}),
     use_container_width=True,
     height=350
 )
